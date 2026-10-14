@@ -1,0 +1,157 @@
+@if (game.loading()) {
+  <div class="overlay"><div class="spinner"></div><p>Génération de l'enquête…</p></div>
+}
+
+@if (!game.puzzle()) {
+  <main class="menu">
+    <h1>🔍 Murdoku</h1>
+    <p class="tagline">Un meurtre, des suspects, un sudoku. Qui est le coupable&nbsp;?</p>
+    @if (canResume()) {
+      <button class="btn primary" (click)="resume()">▶ Reprendre la partie</button>
+    }
+    <h2>Nouvelle partie</h2>
+    <div class="levels">
+      @for (l of levels; track l.level) {
+        <button class="level" (click)="start(l.level)" [disabled]="game.loading()">
+          <span class="stars">{{ '★'.repeat(l.level) }}{{ '☆'.repeat(5 - l.level) }}</span>
+          <strong>{{ l.name }}</strong>
+          <small>
+            Grille {{ l.size }}×{{ l.size }}
+            @if (game.best()[l.level]) {
+              · 🏆 {{ time(game.best()[l.level]) }}
+            }
+          </small>
+        </button>
+      }
+    </div>
+    <button class="btn" (click)="showHelp.set(true)">Règles du jeu</button>
+  </main>
+} @else {
+  <header class="bar">
+    <button class="btn" (click)="game.leave(); canResume.set(true)">☰ Menu</button>
+    <div class="title">
+      <strong>{{ levelName() }}</strong>
+      <span>⏱ {{ time(game.elapsed()) }}</span>
+    </div>
+    <button class="btn" (click)="showHelp.set(true)">?</button>
+  </header>
+
+  <main class="game">
+    <section class="boardwrap">
+      <div class="board" [style.--n]="rows().length">
+        <div class="corner"></div>
+        @for (c of rows(); track c) {
+          <div class="axis">{{ colLabel(c) }}</div>
+        }
+        @for (r of rows(); track r) {
+          <div class="axis">{{ r + 1 }}</div>
+          @for (cell of rowCells(r); track cell.c) {
+            <button
+              class="cell"
+              [class.wt]="cell.wallTop"
+              [class.wr]="cell.wallRight"
+              [class.wb]="cell.wallBottom"
+              [class.wl]="cell.wallLeft"
+              [class.blocked]="cell.obj"
+              [class.conflict]="cell.conflict"
+              [class.error]="cell.error"
+              [style.background]="cell.color"
+              [attr.aria-label]="'Case ' + colLabel(cell.c) + (cell.r + 1)"
+              (click)="game.tapCell(cell.r, cell.c)"
+            >
+              @if (cell.label) {
+                <span class="room">{{ cell.label }}</span>
+              }
+              @if (cell.obj) {
+                <span class="obj">{{ cell.obj }}</span>
+              }
+              @if (cell.mark) {
+                <span class="mark">✖</span>
+              }
+              @if (cell.charId >= 0) {
+                <span class="token" [style.background]="tokenOf(cell.charId).color">
+                  {{ tokenOf(cell.charId).emoji }}
+                  @if (cell.charId === game.puzzle()!.victim) {
+                    <i class="skull">💀</i>
+                  }
+                </span>
+              }
+            </button>
+          }
+        }
+      </div>
+
+      <div class="tray">
+        @for (ch of game.puzzle()!.characters; track ch.id) {
+          <button
+            class="chip"
+            [class.sel]="game.tool() === ch.id"
+            [class.placed]="game.placements()[ch.id]"
+            [style.--col]="ch.color"
+            (click)="game.selectTool(ch.id)"
+            (dblclick)="game.removeChar(ch.id)"
+          >
+            <span class="face">{{ ch.emoji }}</span>
+            <span class="nm">{{ ch.name }}{{ ch.id === game.puzzle()!.victim ? ' 💀' : '' }}</span>
+          </button>
+        }
+        <button class="chip tool" [class.sel]="game.tool() === 'mark'" (click)="game.selectTool('mark')">
+          <span class="face">✖</span><span class="nm">Barrer</span>
+        </button>
+      </div>
+
+      <div class="actions">
+        <button class="btn" (click)="game.undo()" [disabled]="!game.canUndo()">↶ Annuler</button>
+        <button class="btn" (click)="game.check()">✔ Vérifier</button>
+        <button class="btn" (click)="game.hint()">💡 Indice (+30s)</button>
+        <button class="btn" (click)="start(game.puzzle()!.level)">↻ Nouvelle</button>
+      </div>
+    </section>
+
+    <aside class="clues">
+      <h2>🕵️ Indices <small>{{ game.placedCount() }}/{{ rows().length }} placés</small></h2>
+      <p class="goal">
+        <strong>{{ tokenOf(game.puzzle()!.victim).name }}</strong> 💀 a été assassiné(e) : le meurtrier est la
+        seule autre personne présente dans sa pièce.
+      </p>
+      <ol>
+        @for (clue of clues(); track $index) {
+          <li [class.done]="game.crossed().has($index)" (click)="game.toggleClue($index)">{{ clue }}</li>
+        }
+      </ol>
+    </aside>
+  </main>
+
+  @if (game.solved()) {
+    <div class="overlay modal">
+      <div class="card">
+        <h2>🎉 Affaire résolue !</h2>
+        <p>Le meurtrier est <strong>{{ killerName() }}</strong>.</p>
+        <p>Temps : {{ time(game.elapsed()) }}</p>
+        <button class="btn primary" (click)="start(game.puzzle()!.level)">Nouvelle enquête</button>
+        <button class="btn" (click)="game.leave()">Menu</button>
+      </div>
+    </div>
+  }
+}
+
+@if (showHelp()) {
+  <div class="overlay modal" (click)="showHelp.set(false)">
+    <div class="card help" (click)="$event.stopPropagation()">
+      <h2>Règles</h2>
+      <ul>
+        <li>Chaque personnage se trouve <strong>une seule fois</strong> dans la grille.</li>
+        <li>Il y a exactement <strong>un personnage par ligne</strong> et <strong>par colonne</strong>.</li>
+        <li>Personne ne peut se trouver sur un meuble.</li>
+        <li>La victime 💀 est dans une pièce avec <strong>une seule autre personne&nbsp;: le meurtrier</strong>.</li>
+        <li>Utilisez les indices pour placer tout le monde.</li>
+      </ul>
+      <p>
+        <strong>Commandes :</strong> touchez/cliquez un personnage puis une case pour le placer. Touchez un
+        personnage posé pour le reprendre ; « Barrer » marque les cases impossibles. Touchez un indice pour le
+        rayer.
+      </p>
+      <button class="btn primary" (click)="showHelp.set(false)">Compris</button>
+    </div>
+  </div>
+}
