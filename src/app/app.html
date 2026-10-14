@@ -28,7 +28,7 @@
   </main>
 } @else {
   <header class="bar">
-    <button class="btn" (click)="game.leave(); canResume.set(true)">☰ Menu</button>
+    <button class="btn" (click)="game.leave(); canResume.set(game.hasSave())">☰ Menu</button>
     <div class="title">
       <strong>{{ levelName() }}</strong>
       <span>⏱ {{ time(game.elapsed()) }}</span>
@@ -57,7 +57,12 @@
               [class.error]="cell.error"
               [style.background]="cell.color"
               [attr.aria-label]="'Case ' + colLabel(cell.c) + (cell.r + 1)"
-              (click)="game.tapCell(cell.r, cell.c)"
+              (click)="onTap($event, cell.r, cell.c)"
+              (contextmenu)="onSecondary($event, cell.r, cell.c)"
+              (pointerdown)="pressStart($event, cell.r, cell.c)"
+              (pointerup)="pressEnd()"
+              (pointerleave)="pressEnd()"
+              (pointercancel)="pressEnd()"
             >
               @if (cell.label) {
                 <span class="room">{{ cell.label }}</span>
@@ -89,7 +94,6 @@
             [class.placed]="game.placements()[ch.id]"
             [style.--col]="ch.color"
             (click)="game.selectTool(ch.id)"
-            (dblclick)="game.removeChar(ch.id)"
           >
             <span class="face">{{ ch.emoji }}</span>
             <span class="nm">{{ ch.name }}{{ ch.id === game.puzzle()!.victim ? ' 💀' : '' }}</span>
@@ -129,7 +133,7 @@
         <p>Le meurtrier est <strong>{{ killerName() }}</strong>.</p>
         <p>Temps : {{ time(game.elapsed()) }}</p>
         <button class="btn primary" (click)="start(game.puzzle()!.level)">Nouvelle enquête</button>
-        <button class="btn" (click)="game.leave()">Menu</button>
+        <button class="btn" (click)="game.leave(); canResume.set(game.hasSave())">Menu</button>
       </div>
     </div>
   }
@@ -148,8 +152,9 @@
       </ul>
       <p>
         <strong>Commandes :</strong> touchez/cliquez un personnage puis une case pour le placer. Touchez un
-        personnage posé pour le reprendre ; « Barrer » marque les cases impossibles. Touchez un indice pour le
-        rayer.
+        personnage posé pour le reprendre. <strong>Clic droit</strong> (ou appui long sur écran tactile) sur une
+                case : la barre comme impossible, ou retire le personnage qui s'y trouve. Le bouton « Barrer » fait la
+                même chose en clic simple. Touchez un indice pour le rayer.
       </p>
       <button class="btn primary" (click)="showHelp.set(false)">Compris</button>
     </div>

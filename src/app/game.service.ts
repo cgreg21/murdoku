@@ -130,7 +130,13 @@ export class GameService {
   }
 
   leave() {
-    this.save();
+    if (this.solved()) {
+      try {
+        localStorage.removeItem(SAVE_KEY);
+      } catch {}
+    } else {
+      this.save();
+    }
     this.puzzle.set(null);
   }
 
@@ -182,12 +188,13 @@ export class GameService {
         pl[tool] = null;
       } else {
         if (occupant >= 0) pl[occupant] = null;
+        const wasPlaced = !!pl[tool];
         pl[tool] = { r, c };
         const m = new Set(this.marks());
         m.delete(key);
         this.marks.set(m);
-        // Passe au prochain personnage non placé.
-        const next = pl.findIndex((x, i) => !x && i !== tool);
+        // Passe au prochain personnage non placé (sauf si on vient de déplacer un personnage).
+        const next = wasPlaced ? -1 : pl.findIndex((x) => !x);
         this.tool.set(next >= 0 ? next : null);
       }
       this.placements.set(pl);
@@ -196,6 +203,23 @@ export class GameService {
     }
     this.errors.set(new Set());
     this.checkSolved();
+    this.save();
+  }
+
+  /** Clic droit / appui long : barre une case vide, ou retire le personnage qui s'y trouve. */
+  secondaryAction(r: number, c: number) {
+    if (!this.puzzle() || this.solved() || this.isBlocked(r, c)) return;
+    const occupant = this.charAt(r, c);
+    if (occupant >= 0) {
+      this.removeChar(occupant);
+      return;
+    }
+    this.snapshot();
+    const key = `${r},${c}`;
+    const m = new Set(this.marks());
+    m.has(key) ? m.delete(key) : m.add(key);
+    this.marks.set(m);
+    this.errors.set(new Set());
     this.save();
   }
 

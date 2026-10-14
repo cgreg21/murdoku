@@ -104,6 +104,40 @@ export class App {
     return this.game.puzzle()!.characters[id];
   }
 
+  private pressTimer?: ReturnType<typeof setTimeout>;
+  private longPressed = false;
+
+  /** Appui long tactile = action secondaire (le menu contextuel natif n'existe pas partout). */
+  protected pressStart(e: PointerEvent, r: number, c: number) {
+    this.longPressed = false;
+    if (e.pointerType === 'mouse') return;
+    this.pressEnd();
+    this.pressTimer = setTimeout(() => {
+      this.longPressed = true;
+      this.game.secondaryAction(r, c);
+      navigator.vibrate?.(20);
+    }, 450);
+  }
+
+  protected pressEnd() {
+    clearTimeout(this.pressTimer);
+  }
+
+  protected onTap(e: Event, r: number, c: number) {
+    if (this.longPressed) {
+      this.longPressed = false;
+      e.preventDefault();
+      return;
+    }
+    this.game.tapCell(r, c);
+  }
+
+  protected onSecondary(e: Event, r: number, c: number) {
+    e.preventDefault();
+    if (this.longPressed) return; // déjà traité par l'appui long
+    this.game.secondaryAction(r, c);
+  }
+
   protected rowCells(r: number) {
     const n = this.rows().length;
     return this.cells().slice(r * n, (r + 1) * n);
