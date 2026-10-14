@@ -1,10 +1,10 @@
-﻿import { Board, Clue, Pos } from './types';
+import { Board, Clue, Pos } from './types';
 import { clueChars, holds, needsAll } from './clues';
 
 /**
- * Compte les solutions (jusqu'Ã  `limit`). RÃ¨gles : un personnage par ligne et par colonne,
- * pas sur un objet, et la victime (id 0) partage sa piÃ¨ce avec exactement une autre personne.
- * Retourne -1 si le budget de nÅ“uds est dÃ©passÃ©.
+ * Compte les solutions (jusqu'à `limit`). Règles : un personnage par ligne et par colonne,
+ * pas sur un objet, et la victime (id 0) partage sa pièce avec exactement une autre personne.
+ * Retourne -1 si le budget de nœuds est dépassé.
  */
 export function countSolutions(board: Board, clues: Clue[], limit = 2, budget = 100000): number {
   const n = board.size;
@@ -12,7 +12,7 @@ export function countSolutions(board: Board, clues: Clue[], limit = 2, budget = 
   const colUsed = new Array<boolean>(n).fill(false);
   const pos: (Pos | undefined)[] = new Array(n).fill(undefined);
 
-  // Indices vÃ©rifiÃ©s dÃ¨s que leur dernier personnage (index max) est placÃ©.
+  // Indices vérifiés dès que leur dernier personnage (index max) est placé.
   const byLast: Clue[][] = Array.from({ length: n }, () => []);
   const finals: Clue[] = [];
   for (const c of clues) {
