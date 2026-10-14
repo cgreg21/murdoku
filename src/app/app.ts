@@ -17,6 +17,7 @@ interface CellVm {
   wallBottom: boolean;
   wallLeft: boolean;
   label: string | null;
+  decos: { kind: 'door' | 'window'; side: string }[];
 }
 
 @Component({
@@ -41,6 +42,16 @@ export class App {
     const conflicts = this.game.conflicts();
     const errors = this.game.errors();
     const flat = b.rooms.flat();
+    const decos = new Map<string, { kind: 'door' | 'window'; side: string }[]>();
+    const addDeco = (list: string[] | undefined, kind: 'door' | 'window') => {
+      for (const k of list ?? []) {
+        const [r, c, side] = k.split(',');
+        const key = `${r},${c}`;
+        decos.set(key, [...(decos.get(key) ?? []), { kind, side }]);
+      }
+    };
+    addDeco(b.doors, 'door');
+    addDeco(b.windows, 'window');
     const out: CellVm[] = [];
     for (let r = 0; r < b.size; r++)
       for (let c = 0; c < b.size; c++) {
@@ -63,6 +74,7 @@ export class App {
           wallLeft: b.rooms[r]?.[c - 1] !== room,
           wallRight: b.rooms[r]?.[c + 1] !== room,
           label: first ? b.roomNames[room] : null,
+          decos: decos.get(`${r},${c}`) ?? [],
         });
       }
     return out;

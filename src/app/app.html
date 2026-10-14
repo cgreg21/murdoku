@@ -64,6 +64,9 @@
               (pointerleave)="pressEnd()"
               (pointercancel)="pressEnd()"
             >
+              @for (d of cell.decos; track d.kind + d.side) {
+                <span class="deco" [class]="'deco ' + d.kind + ' s-' + d.side"></span>
+              }
               @if (cell.label) {
                 <span class="room">{{ cell.label }}</span>
               }
@@ -149,6 +152,7 @@
         <li>Personne ne peut se trouver sur un meuble.</li>
         <li>La victime 💀 est dans une pièce avec <strong>une seule autre personne&nbsp;: le meurtrier</strong>.</li>
         <li>Utilisez les indices pour placer tout le monde.</li>
+        <li>Les <strong>portes</strong> 🚪 relient deux pièces et les <strong>fenêtres</strong> 🪟 sont sur les murs extérieurs : une case « touche » une porte ou une fenêtre si elle est sur son bord.</li>
       </ul>
       <p>
         <strong>Commandes :</strong> touchez/cliquez un personnage puis une case pour le placer. Touchez un

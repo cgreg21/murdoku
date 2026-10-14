@@ -25,13 +25,19 @@ export type Clue =
   | { t: 'left'; a: number; b: number }
   | { t: 'above'; a: number; b: number }
   | { t: 'alone'; a: number }
-  | { t: 'near'; a: number; kind: string };
+  | { t: 'near'; a: number; kind: string }
+  | { t: 'edge'; a: number; kind: 'door' | 'window' };
 
 export interface Board {
   size: number;
   rooms: number[][]; // identifiant de pièce par case
   roomNames: string[];
   objects: (string | null)[][]; // identifiant d'objet (case bloquée) ou null
+  // Ouvertures "r,c,côté" (t/r/b/l). Les portes ne sont stockées que côté r ou b.
+  doors: string[];
+  windows: string[];
+  doorCells: boolean[][]; // la case touche une porte
+  windowCells: boolean[][]; // la case touche une fenêtre
 }
 
 export interface Puzzle {
@@ -95,9 +101,9 @@ export interface LevelConfig {
 
 export const LEVELS: LevelConfig[] = [
   { level: 1, name: 'Débutant', size: 5, rooms: 3, objects: 3, clueTypes: ['room', 'near', 'adj', 'left', 'above'], allowNegative: false, pruneRatio: 0.2 },
-  { level: 2, name: 'Facile', size: 6, rooms: 4, objects: 4, clueTypes: ['room', 'near', 'adj', 'same', 'left', 'above', 'alone'], allowNegative: false, pruneRatio: 0.5 },
-  { level: 3, name: 'Moyen', size: 7, rooms: 4, objects: 6, clueTypes: ['room', 'near', 'adj', 'same', 'left', 'above', 'alone'], allowNegative: true, pruneRatio: 0.8 },
-  { level: 4, name: 'Difficile', size: 8, rooms: 5, objects: 8, clueTypes: ['room', 'near', 'adj', 'same', 'left', 'above', 'alone'], allowNegative: true, pruneRatio: 1 },
-  { level: 5, name: 'Expert', size: 9, rooms: 6, objects: 10, clueTypes: ['room', 'near', 'adj', 'same', 'left', 'above', 'alone'], allowNegative: true, pruneRatio: 1 },
+  { level: 2, name: 'Facile', size: 6, rooms: 4, objects: 4, clueTypes: ['room', 'near', 'edge', 'adj', 'same', 'left', 'above', 'alone'], allowNegative: false, pruneRatio: 0.5 },
+  { level: 3, name: 'Moyen', size: 7, rooms: 4, objects: 6, clueTypes: ['room', 'near', 'edge', 'adj', 'same', 'left', 'above', 'alone'], allowNegative: true, pruneRatio: 0.8 },
+  { level: 4, name: 'Difficile', size: 8, rooms: 5, objects: 8, clueTypes: ['room', 'near', 'edge', 'adj', 'same', 'left', 'above', 'alone'], allowNegative: true, pruneRatio: 1 },
+  { level: 5, name: 'Expert', size: 9, rooms: 6, objects: 10, clueTypes: ['room', 'near', 'edge', 'adj', 'same', 'left', 'above', 'alone'], allowNegative: true, pruneRatio: 1 },
 ];
 

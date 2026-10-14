@@ -26,6 +26,7 @@ export function clueChars(c: Clue): number[] {
     case 'col':
     case 'alone':
     case 'near':
+    case 'edge':
       return [c.a];
     default:
       return [c.a, c.b];
@@ -44,6 +45,8 @@ export function holds(board: Board, pos: (Pos | undefined)[], clue: Clue): boole
       return a.c === clue.col;
     case 'near':
       return nearKind(board, a, clue.kind);
+    case 'edge':
+      return (clue.kind === 'door' ? board.doorCells : board.windowCells)[a.r][a.c];
     case 'adj':
       return adjacent(a, pos[clue.b]!) !== clue.neg;
     case 'same':

@@ -16,8 +16,11 @@ export function clueText(p: Puzzle, clue: Clue): string {
       return `${a} est sur la colonne ${colLabel(clue.col)}.`;
     case 'near': {
       const kind = OBJECT_KINDS.find((k) => k.id === clue.kind)!;
-      return `${a} est juste à côté de ${kind.label} ${kind.emoji}.`;
+      const de = kind.label.replace(/^une? /, (m) => `d'${m}`).replace(/^des /, 'des ');
+      return `${a} est juste à côté ${de.startsWith("d'") || de.startsWith('des') ? '' : 'de '}${de} ${kind.emoji}.`;
     }
+    case 'edge':
+      return clue.kind === 'door' ? `${a} est juste à côté d'une porte 🚪.` : `${a} est contre une fenêtre 🪟.`;
     case 'adj':
       return `${a} ${clue.neg ? "n'est pas" : 'est'} juste à côté de ${name(clue.b)}.`;
     case 'same':

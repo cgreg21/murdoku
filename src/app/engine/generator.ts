@@ -88,6 +88,10 @@ function buildCluePool(board: Board, sol: Pos[], types: Clue['t'][], neg: boolea
     if (has('col')) pool.push({ t: 'col', a, col: p.c });
     if (has('near'))
       for (const k of OBJECT_KINDS) if (nearKind(board, p, k.id)) pool.push({ t: 'near', a, kind: k.id });
+    if (has('edge')) {
+      if (board.doorCells[p.r][p.c]) pool.push({ t: 'edge', a, kind: 'door' });
+      if (board.windowCells[p.r][p.c]) pool.push({ t: 'edge', a, kind: 'window' });
+    }
     if (has('alone') && sol.every((q, i) => i === a || roomAt(board, q) !== roomAt(board, p)))
       pool.push({ t: 'alone', a });
     for (let b = 0; b < n; b++) {
@@ -102,6 +106,51 @@ function buildCluePool(board: Board, sol: Pos[], types: Clue['t'][], neg: boolea
     }
   }
   return pool;
+}
+
+const grid = (n: number) => Array.from({ length: n }, () => new Array<boolean>(n).fill(false));
+
+function addOpenings(board: Board, rng: Rng) {
+  const n = board.size;
+  const free = (r: number, c: number) => !board.objects[r][c];
+  const byPair = new Map<string, { r: number; c: number; side: string; a: number; b: number }[]>();
+  for (let r = 0; r < n; r++)
+    for (let c = 0; c < n; c++) {
+      if (!free(r, c)) continue;
+      const cands: [number, number, string][] = [[r, c + 1, 'r'], [r + 1, c, 'b']];
+      for (const [r2, c2, side] of cands) {
+        if (r2 >= n || c2 >= n || !free(r2, c2)) continue;
+        const a = board.rooms[r][c];
+        const b = board.rooms[r2][c2];
+        if (a === b) continue;
+        const key = Math.min(a, b) + '-' + Math.max(a, b);
+        if (!byPair.has(key)) byPair.set(key, []);
+        byPair.get(key)!.push({ r, c, side, a, b });
+      }
+    }
+  // Arbre couvrant (toutes les pièces accessibles si possible) + quelques portes en plus.
+  const parent = [...Array(Math.max(...board.rooms.flat()) + 1).keys()];
+  const find = (x: number): number => (parent[x] === x ? x : (parent[x] = find(parent[x])));
+  for (const list of shuffle([...byPair.values()], rng)) {
+    const e = pick(list, rng);
+    const joined = find(e.a) !== find(e.b);
+    if (!joined && rng() > 0.25) continue;
+    parent[find(e.a)] = find(e.b);
+    board.doors.push(`${e.r},${e.c},${e.side}`);
+    board.doorCells[e.r][e.c] = true;
+    const r2 = e.side === 'b' ? e.r + 1 : e.r;
+    const c2 = e.side === 'r' ? e.c + 1 : e.c;
+    board.doorCells[r2][c2] = true;
+  }
+  const edges: [number, number, string][] = [];
+  for (let i = 0; i < n; i++)
+    for (const [r, c, side] of [[0, i, 't'], [n - 1, i, 'b'], [i, 0, 'l'], [i, n - 1, 'r']] as [number, number, string][])
+      if (free(r, c)) edges.push([r, c, side]);
+  const count = Math.max(2, Math.round(n * 0.9));
+  for (const [r, c, side] of shuffle(edges, rng).slice(0, count)) {
+    board.windows.push(`${r},${c},${side}`);
+    board.windowCells[r][c] = true;
+  }
 }
 
 function tryGenerate(level: number, rng: Rng, seed: number): Puzzle | null {
@@ -120,7 +169,12 @@ function tryGenerate(level: number, rng: Rng, seed: number): Puzzle | null {
     rooms,
     roomNames: shuffle(ROOM_NAMES, rng).slice(0, cfg.rooms),
     objects,
+    doors: [],
+    windows: [],
+    doorCells: grid(n),
+    windowCells: grid(n),
   };
+  addOpenings(board, rng);
 
   const perm = randomPermutation(board, rng);
   if (!perm) return null;
